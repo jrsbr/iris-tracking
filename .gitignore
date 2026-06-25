@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual env (machine-specific, large — recreate from instructions.txt)
+.venv/
+venv/
+
+# Models / large binaries (download separately)
+*.task
+*.tflite
+*.onnx
+models/
+
+# Local tooling / editor
+.codegraph/
+.claude/
+.DS_Store
+.idea/
+.vscode/
+
+# Captured data / recordings
+*.mp4
+*.avi
+calibration_data/

@@ -1,0 +1,66 @@
+==============================================================
+  ComputerVision — Eye-Tracking Project : Environment & Libs
+==============================================================
+
+PURPOSE
+  Living record of the Python version and libraries in use, so the
+  project can be ported to a newer Python once all libs ship wheels
+  for it. Update this file whenever a dependency is added/removed.
+
+WHY PYTHON 3.12 (not 3.14)
+  As of 2026-06, mediapipe had no verified runtime support on 3.14
+  and risked numpy-version conflicts. 3.12 = rock-solid wheels for
+  the whole stack. Revisit when mediapipe ships/validates cp314.
+
+--------------------------------------------------------------
+PYTHON
+  3.12.13  (Homebrew: `brew install python@3.12`)
+  venv at: ./.venv   (create: python3.12 -m venv .venv)
+  activate: source .venv/bin/activate
+
+--------------------------------------------------------------
+DIRECT DEPENDENCIES (the libs we chose)
+  opencv-python   == 4.13.0.92   # capture, image ops, drawing
+  numpy           == 2.5.0       # array math (images are arrays)
+  mediapipe       == 0.10.35     # face/iris landmarks (Tasks API)
+
+  NOTE: install with
+    pip install opencv-python numpy mediapipe
+
+  API NOTE: mediapipe 0.10.35 REMOVED the legacy `mp.solutions.*`
+  API. Use the Tasks API instead:
+    from mediapipe.tasks.python.vision import FaceLandmarker
+  FaceLandmarker needs a downloaded .task model file (478 landmarks,
+  includes iris). Not yet added — pending step 2+.
+
+--------------------------------------------------------------
+FULL PINNED FREEZE (exact, incl. transitive deps)
+  absl-py==2.4.0
+  certifi==2026.6.17
+  cffi==2.0.0
+  contourpy==1.3.3
+  cycler==0.12.1
+  flatbuffers==25.12.19
+  fonttools==4.63.0
+  kiwisolver==1.5.0
+  matplotlib==3.11.0
+  mediapipe==0.10.35
+  numpy==2.5.0
+  opencv-contrib-python==4.13.0.92
+  opencv-python==4.13.0.92
+  packaging==26.2
+  pillow==12.2.0
+  pycparser==3.0
+  pyparsing==3.3.2
+  python-dateutil==2.9.0.post0
+  six==1.17.0
+  sounddevice==0.5.5
+
+--------------------------------------------------------------
+PORTING TO NEWER PYTHON (future)
+  1. Check wheels exist for target Python:
+       all 3 direct deps must have cpXY (or abi3/py3-none) wheels.
+  2. Create new venv with target python, pip install direct deps.
+  3. Run import + webcam smoke test before trusting it.
+
+  Last reviewed: 2026-06-25
