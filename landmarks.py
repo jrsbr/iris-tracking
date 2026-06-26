@@ -21,15 +21,22 @@ def build_landmarker():
     faceLandmarker = mp.tasks.vision.FaceLandmarker.create_from_options(faceLandmarkerOpt)
     return faceLandmarker
 
-def draw_landmarks(frame, result):
+def draw_landmarks(frame, result, iris = 1):
     if (not result.face_landmarks):
         return
     detectedFaces = result.face_landmarks # list of landmarks / each entry is a list for each face
     h, w = frame.shape[:2]
 
     for face in detectedFaces:
-        for lm in face:
+        for i, lm in enumerate(face):
             px, py = int(lm.x * w), int(lm.y * h) # denormalizes x and y
+            if (iris):
+                if (i == 468 or i == 473):
+                    cv2.circle(frame, (px, py), 1, (255, 0, 0), -1)
+                    continue
+                if (i > 468 and i <= 477):
+                    cv2.circle(frame, (px, py), 1, (0, 0, 255), -1)
+                    continue
             cv2.circle(frame, (px, py), 1, (0, 255, 0), -1) # draws a dot
 
 def main():
