@@ -31,7 +31,12 @@ DIRECT DEPENDENCIES (the libs we chose)
   API. Use the Tasks API instead:
     from mediapipe.tasks.python.vision import FaceLandmarker
   FaceLandmarker needs a downloaded .task model file (478 landmarks,
-  includes iris). Not yet added — pending step 2+.
+  includes iris).
+
+  MODEL (gitignored, download separately into ./models/):
+    file: models/face_landmarker.task   (~3.6 MB, float16)
+    url:  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+    get:  curl -fsSL "<url>" -o models/face_landmarker.task
 
 --------------------------------------------------------------
 FULL PINNED FREEZE (exact, incl. transitive deps)
