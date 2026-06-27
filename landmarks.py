@@ -2,10 +2,12 @@ import time
 
 import cv2
 import mediapipe as mp
+import numpy as np
 
 MODEL_PATH = "models/face_landmarker.task"
 WINDOW = "landmarks"
-
+RIGHT_EYE = {"corner1": 33,  "corner2": 133, "iris": (469, 470, 471, 472)}
+LEFT_EYE  = {"corner1": 362, "corner2": 263, "iris": (474, 475, 476, 477)}
 
 def build_landmarker():
     baseOpt = mp.tasks.BaseOptions(model_asset_path = MODEL_PATH)
@@ -40,20 +42,32 @@ def draw_landmarks(frame, result, iris = 1):
             cv2.circle(frame, (px, py), 1, (0, 255, 0), -1) # draws a dot
         
 
-def eye_ratio(face, eye):
-    c1, c2 = face[eye["corner1"]], face[eye["corner2"]]
-    left = c1 if c1.x < c2.x else c2
-    right = c1 if c1.x > c2.x else c2
+def eye_coords(frame, face, eye):
+    h, w = frame.shape[:2]
 
-    l1, l2 = face[eye["lid1"]], face[eye["lid2"]]
-    upper = l1 if l1.y < l2.y else l2
-    lower = l1 if l1.y > l2.y else l2
+    def coord(index):
+        lm = face[index]
+        return np.array([lm.x * w , lm.y * h], np.float64)
 
-    iris = face[eye["iris"]]
+    irisRing = np.array([coord(corner) for corner in eye["iris"]])
+    irisCenter = irisRing.mean(axis=0)
 
-    horizontal = (iris.x - left.x) / (right.x - left.x)
-    vertical  = (iris.y - lower.y) / (upper.y - lower.y)
-    return horizontal, vertical
+    c1, c2 = eye["corner1"], eye["corner2"]
+    left = coord(c1) if face[c1].x < face[c2].x else coord(c2)
+    right = coord(c1) if face[c1].x > face[c2].x else coord(c2)
+
+    eye_vec = right - left
+    eye_width = np.linalg.norm(eye_vec)
+
+    e_x = eye_vec/eye_width
+    e_y = np.array([-e_x[1], e_x[0]])
+    eye_origin = (left + right) / 2
+
+    offset = irisCenter - eye_origin
+    u = offset @ e_x / eye_width
+    v = offset @ e_y / eye_width
+
+    return u, v
 
 def main():
     cap = cv2.VideoCapture(0)
@@ -84,12 +98,11 @@ def main():
         mp_image = mp.Image(image_format = mp.ImageFormat.SRGB, data = rgb) # returns an mp.Image from the rgb data
         ts_ms = int(time.time() * 1000)
         result = landmarker.detect_for_video(mp_image, ts_ms) # returns the object of all landmarks detected per face
-        face = result.face_landmarks[0]
-        RIGHT_EYE = {"corner1": 33,  "corner2": 133, "lid1": 159, "lid2": 145, "iris": 468}
-        LEFT_EYE  = {"corner1": 263, "corner2": 362, "lid1": 386, "lid2": 374, "iris": 473}
-        hr, vr = eye_ratio(face, RIGHT_EYE)
-        hl, vl = eye_ratio(face, LEFT_EYE)
-        print(f"R({hr:.2f},{vr:.2f})  L({hl:.2f},{vl:.2f})")
+        if len(result.face_landmarks) > 0:
+            face = result.face_landmarks[0]
+            hr, vr = eye_coords(frame, face, RIGHT_EYE)
+            hl, vl = eye_coords(frame, face, LEFT_EYE)
+            print(f"R({hr:.2f},{vr:.2f})  L({hl:.2f},{vl:.2f})")
         draw_landmarks(frame, result)
 
         cv2.imshow(WINDOW, frame)
