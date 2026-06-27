@@ -38,6 +38,22 @@ def draw_landmarks(frame, result, iris = 1):
                     cv2.circle(frame, (px, py), 1, (0, 0, 255), -1)
                     continue
             cv2.circle(frame, (px, py), 1, (0, 255, 0), -1) # draws a dot
+        
+
+def eye_ratio(face, eye):
+    c1, c2 = face[eye["corner1"]], face[eye["corner2"]]
+    left = c1 if c1.x < c2.x else c2
+    right = c1 if c1.x > c2.x else c2
+
+    l1, l2 = face[eye["lid1"]], face[eye["lid2"]]
+    upper = l1 if l1.y < l2.y else l2
+    lower = l1 if l1.y > l2.y else l2
+
+    iris = face[eye["iris"]]
+
+    horizontal = (iris.x - left.x) / (right.x - left.x)
+    vertical  = (iris.y - lower.y) / (upper.y - lower.y)
+    return horizontal, vertical
 
 def main():
     cap = cv2.VideoCapture(0)
@@ -68,6 +84,12 @@ def main():
         mp_image = mp.Image(image_format = mp.ImageFormat.SRGB, data = rgb) # returns an mp.Image from the rgb data
         ts_ms = int(time.time() * 1000)
         result = landmarker.detect_for_video(mp_image, ts_ms) # returns the object of all landmarks detected per face
+        face = result.face_landmarks[0]
+        RIGHT_EYE = {"corner1": 33,  "corner2": 133, "lid1": 159, "lid2": 145, "iris": 468}
+        LEFT_EYE  = {"corner1": 263, "corner2": 362, "lid1": 386, "lid2": 374, "iris": 473}
+        hr, vr = eye_ratio(face, RIGHT_EYE)
+        hl, vl = eye_ratio(face, LEFT_EYE)
+        print(f"R({hr:.2f},{vr:.2f})  L({hl:.2f},{vl:.2f})")
         draw_landmarks(frame, result)
 
         cv2.imshow(WINDOW, frame)
