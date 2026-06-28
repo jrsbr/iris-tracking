@@ -78,7 +78,7 @@ def fit(X, Y):
 def predict(W, feat):
     return np.array([1, *feat]) @ W
 
-def live(W):
+def live(W, alpha = 0.2):
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Could not open camera (index 0).")
@@ -115,7 +115,8 @@ def live(W):
         if len(result.face_landmarks) > 0:
             face = result.face_landmarks[0]
             feat = feature(frame, face)
-            predict_coord = predict(W, feat)
+            raw_predict_coord = predict(W, feat)
+            predict_coord = raw_predict_coord * alpha + predict_coord * (1 - alpha)
 
         cv2.circle(canvas, (int(predict_coord[0]),int(predict_coord[1])), 20, (0,0,255), -1)
 
