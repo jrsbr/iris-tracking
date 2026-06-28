@@ -10,7 +10,7 @@ RIGHT_EYE = {"corner1": 33,  "corner2": 133, "iris": (469, 470, 471, 472)}
 LEFT_EYE  = {"corner1": 362, "corner2": 263, "iris": (474, 475, 476, 477)}
 
 def build_landmarker():
-    baseOpt = mp.tasks.BaseOptions(model_asset_path = MODEL_PATH)
+    baseOpt = mp.tasks.BaseOptions(model_asset_path = MODEL_PATH, output_facial_transformation_matrixes=True)
 
     # creates an option file to create a FaceLandmarker
     faceLandmarkerOpt = mp.tasks.vision.FaceLandmarkerOptions(
@@ -68,6 +68,11 @@ def eye_coords(frame, face, eye):
     v = offset @ e_y / eye_width
 
     return u, v
+
+def head_rotation(faceTransMatrix):
+    R = faceTransMatrix[:3, :3]
+    angles, *_ = cv2.RQDecomp3x3(R)
+    return angles[0], angles[1], angles[2]
 
 def main():
     cap = cv2.VideoCapture(0)
