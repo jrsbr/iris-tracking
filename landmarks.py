@@ -10,11 +10,12 @@ RIGHT_EYE = {"corner1": 33,  "corner2": 133, "iris": (469, 470, 471, 472)}
 LEFT_EYE  = {"corner1": 362, "corner2": 263, "iris": (474, 475, 476, 477)}
 
 def build_landmarker():
-    baseOpt = mp.tasks.BaseOptions(model_asset_path = MODEL_PATH, output_facial_transformation_matrixes=True)
+    baseOpt = mp.tasks.BaseOptions(model_asset_path = MODEL_PATH)
 
     # creates an option file to create a FaceLandmarker
     faceLandmarkerOpt = mp.tasks.vision.FaceLandmarkerOptions(
             base_options = baseOpt,
+            output_facial_transformation_matrixes=True,
             running_mode = mp.tasks.vision.RunningMode.VIDEO, # possibly change to LIVE_STREAM mode if latency issues
             num_faces = 1,
     )
