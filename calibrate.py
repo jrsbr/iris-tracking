@@ -2,19 +2,21 @@ import time
 import cv2
 import numpy as np
 import mediapipe as mp
-from landmarks import build_landmarker, eye_coords, RIGHT_EYE, LEFT_EYE
+from landmarks import build_landmarker, eye_coords, RIGHT_EYE, LEFT_EYE, head_rotation, head_translation
 
 CANVAS_W = 1920
 CANVAS_H = 1080
 GRID = [0.1, 0.5, 0.9]
 TARGETS = [(fx,fy) for fx in GRID for fy in GRID]
-SETTLE_TIME, RECORD_TIME = 1, 1
+SETTLE_TIME, RECORD_TIME = 1, 5
 WINDOW_NAME = "calibration"
 
-def feature(frame, face):
+def feature(frame, face, faceMatrix):
     uL, vL = eye_coords(frame, face, LEFT_EYE)
     uR, vR = eye_coords(frame, face, RIGHT_EYE)
-    return [uL, vL, uR, vR]
+    a1, a2, a3 = head_rotation(faceMatrix)
+    tx, ty, tz = head_translation(faceMatrix)
+    return [uL, vL, uR, vR, a1, a2, a3, tx, ty, tz]
 
 def collect():
     cap = cv2.VideoCapture(0)
@@ -53,16 +55,19 @@ def collect():
             result = landmarker.detect_for_video(mp_image, ts_ms)
 
             canvas = np.zeros((CANVAS_H, CANVAS_W, 3), np.uint8)
-            cv2.circle(canvas, (int(tx),int(ty)), 20, (0,0,255), -1)
+            recording = time.time() - t0 > SETTLE_TIME
+            cv2.circle(canvas, (int(tx),int(ty)), 20, (0,255,0) if recording else (0,0,255), -1)
+            cv2.putText(canvas, "stare at dot, move head around (yaw, nod, tilt, lean, in/out)",
+                        (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+
+            if recording and len(result.face_landmarks) > 0 and len(result.facial_transformation_matrixes) > 0:
+                face = result.face_landmarks[0]
+                faceMatrix = result.facial_transformation_matrixes[0]
+                X.append(feature(frame, face, faceMatrix))
+                Y.append([tx,ty])
 
             cv2.imshow(WINDOW_NAME, canvas)
             cv2.waitKey(1)
-
-            if time.time() - t0 > SETTLE_TIME and len(result.face_landmarks) > 0:
-                cv2.circle(canvas, (int(tx),int(ty)), 20, (0,255,0), -1)
-                face = result.face_landmarks[0]
-                X.append(feature(frame, face))
-                Y.append([tx,ty])
 
     cap.release()
     cv2.destroyAllWindows()
@@ -112,9 +117,10 @@ def live(W, alpha = 0.2):
         result = landmarker.detect_for_video(mp_image, ts_ms) 
         canvas = np.zeros((CANVAS_H, CANVAS_W, 3), np.uint8)
 
-        if len(result.face_landmarks) > 0:
+        if len(result.face_landmarks) > 0 and len(result.facial_transformation_matrixes) > 0:
             face = result.face_landmarks[0]
-            feat = feature(frame, face)
+            faceMatrix = result.facial_transformation_matrixes[0]
+            feat = feature(frame, face, faceMatrix)
             raw_predict_coord = predict(W, feat)
             predict_coord = raw_predict_coord * alpha + predict_coord * (1 - alpha)
 

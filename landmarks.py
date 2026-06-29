@@ -75,6 +75,9 @@ def head_rotation(faceTransMatrix):
     angles, *_ = cv2.RQDecomp3x3(R)
     return angles[0], angles[1], angles[2]
 
+def head_translation(faceTransMatrix):
+    return faceTransMatrix[:3, 3]
+
 def main():
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
