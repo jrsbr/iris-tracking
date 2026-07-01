@@ -13,6 +13,7 @@ venv/
 *.task
 *.tflite
 *.onnx
+*.pt
 models/
 
 # Local tooling / editor

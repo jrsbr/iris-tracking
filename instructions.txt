@@ -23,9 +23,12 @@ DIRECT DEPENDENCIES (the libs we chose)
   opencv-python   == 4.13.0.92   # capture, image ops, drawing
   numpy           == 2.5.0       # array math (images are arrays)
   mediapipe       == 0.10.35     # face/iris landmarks (Tasks API)
+  scikit-learn    == 1.9.0       # calibration regression (standardize + poly + ridge)
+  torch           == 2.12.1      # CNN gaze model (frozen inference, MPS on M1)
+  torchvision     == 0.27.1      # image transforms + resnet weight enums
 
   NOTE: install with
-    pip install opencv-python numpy mediapipe
+    pip install opencv-python numpy mediapipe scikit-learn torch torchvision
 
   API NOTE: mediapipe 0.10.35 REMOVED the legacy `mp.solutions.*`
   API. Use the Tasks API instead:
@@ -38,6 +41,16 @@ DIRECT DEPENDENCIES (the libs we chose)
     url:  https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
     get:  curl -fsSL "<url>" -o models/face_landmarker.task
 
+  GAZE CNN (appearance-based, frozen inference — Stage A):
+    source repo:  github.com/yakhyo/gaze-estimation  (MIT, (c) 2024 Yakhyokhuja Valikhujaev)
+    vendored code: ./gaze_net/  (resnet/mobilenet/mobileone + LICENSE, committed)
+    backbone:     resnet18, Gaze360-trained  (bins=90, binwidth=4, angle=180)
+    weights (gitignored): models/resnet18.pt   (~43 MB)
+    url:  https://github.com/yakhyo/gaze-estimation/releases/download/weights/resnet18.pt
+    get:  curl -fL "<url>" -o models/resnet18.pt
+    input:  full-face crop, BGR->RGB, Resize(448), ImageNet normalize
+    output: (yaw, pitch) logit heads -> softmax*idx*binwidth - angle -> radians
+
 --------------------------------------------------------------
 FULL PINNED FREEZE (exact, incl. transitive deps)
   absl-py==2.4.0
@@ -45,11 +58,19 @@ FULL PINNED FREEZE (exact, incl. transitive deps)
   cffi==2.0.0
   contourpy==1.3.3
   cycler==0.12.1
+  filelock==3.29.4
   flatbuffers==25.12.19
   fonttools==4.63.0
+  fsspec==2026.6.0
+  Jinja2==3.1.6
+  joblib==1.5.3
   kiwisolver==1.5.0
+  MarkupSafe==3.0.3
   matplotlib==3.11.0
   mediapipe==0.10.35
+  mpmath==1.3.0
+  narwhals==2.22.1
+  networkx==3.6.1
   numpy==2.5.0
   opencv-contrib-python==4.13.0.92
   opencv-python==4.13.0.92
@@ -58,8 +79,16 @@ FULL PINNED FREEZE (exact, incl. transitive deps)
   pycparser==3.0
   pyparsing==3.3.2
   python-dateutil==2.9.0.post0
+  scikit-learn==1.9.0
+  scipy==1.18.0
+  setuptools==81.0.0
   six==1.17.0
   sounddevice==0.5.5
+  sympy==1.14.0
+  threadpoolctl==3.6.0
+  torch==2.12.1
+  torchvision==0.27.1
+  typing_extensions==4.15.0
 
 --------------------------------------------------------------
 PORTING TO NEWER PYTHON (future)
@@ -68,4 +97,4 @@ PORTING TO NEWER PYTHON (future)
   2. Create new venv with target python, pip install direct deps.
   3. Run import + webcam smoke test before trusting it.
 
-  Last reviewed: 2026-06-25
+  Last reviewed: 2026-07-01
