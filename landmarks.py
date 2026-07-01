@@ -6,8 +6,8 @@ import numpy as np
 
 MODEL_PATH = "models/face_landmarker.task"
 WINDOW = "landmarks"
-RIGHT_EYE = {"corner1": 33,  "corner2": 133, "iris": (469, 470, 471, 472)}
-LEFT_EYE  = {"corner1": 362, "corner2": 263, "iris": (474, 475, 476, 477)}
+RIGHT_EYE = {"corner1": 33,  "corner2": 133, "iris": (469, 470, 471, 472), "lid_up": 159, "lid_low": 145}
+LEFT_EYE  = {"corner1": 362, "corner2": 263, "iris": (474, 475, 476, 477), "lid_up": 386, "lid_low": 374}
 
 def build_landmarker():
     baseOpt = mp.tasks.BaseOptions(model_asset_path = MODEL_PATH)
@@ -69,6 +69,22 @@ def eye_coords(frame, face, eye):
     v = offset @ e_y / eye_width
 
     return u, v
+
+def eye_vertical(frame, face, eye):
+    h, w = frame.shape[:2]
+
+    def coord(index):
+        lm = face[index]
+        return np.array([lm.x * w, lm.y * h], np.float64)
+
+    iris = np.array([coord(i) for i in eye["iris"]]).mean(axis=0)
+    up = coord(eye["lid_up"])
+    low = coord(eye["lid_low"])
+
+    span = low[1] - up[1]
+    if abs(span) < 1e-6:
+        return 0.0
+    return (iris[1] - up[1]) / span
 
 def head_rotation(faceTransMatrix):
     R = faceTransMatrix[:3, :3]
