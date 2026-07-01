@@ -2,7 +2,8 @@ import time
 import cv2
 import numpy as np
 import mediapipe as mp
-from landmarks import build_landmarker, eye_coords, eye_vertical, RIGHT_EYE, LEFT_EYE, head_rotation, head_translation
+import gaze_cnn
+from landmarks import build_landmarker, face_box
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import Ridge
@@ -10,7 +11,7 @@ from sklearn.linear_model import Ridge
 CANVAS_W = 1920
 CANVAS_H = 1080
 
-GRID_N = 3
+GRID_N = 4
 GRID = np.linspace(0.1, 0.9, GRID_N)
 TARGETS = [(fx, fy) for fy in GRID for fx in GRID]
 
@@ -19,10 +20,6 @@ RECORD_TIME = 1.0
 
 POSES = [
     "look at the dot, head straight",
-    "eyes on dot, turn head LEFT",
-    "eyes on dot, turn head RIGHT",
-    "eyes on dot, tilt head UP",
-    "eyes on dot, tilt head DOWN",
 ]
 
 POLY_DEGREE = 1
@@ -32,14 +29,12 @@ EMA_ALPHA = 0.2
 WINDOW_NAME = "calibration"
 
 
-def feature(frame, face, faceMatrix):
-    uL, vL = eye_coords(frame, face, LEFT_EYE)
-    uR, vR = eye_coords(frame, face, RIGHT_EYE)
-    a1, a2, a3 = head_rotation(faceMatrix)
-    tx, ty, tz = head_translation(faceMatrix)
-    wL = eye_vertical(frame, face, LEFT_EYE)
-    wR = eye_vertical(frame, face, RIGHT_EYE)
-    return [uL, vL, uR, vR, a1, a2, a3, tx, ty, tz, wL, wR]
+def feature(frame, face):
+    h, w = frame.shape[:2]
+    x0, y0, x1, y1 = face_box(face, w, h)
+    crop = frame[y0:y1, x0:x1]
+    pitch, yaw = gaze_cnn.gaze(crop)
+    return [pitch, yaw]
 
 
 def draw_prompt(canvas, text, cx, cy):
@@ -53,6 +48,7 @@ def draw_prompt(canvas, text, cx, cy):
 
 
 def collect():
+    gaze_cnn.load()
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Could not open camera (index 0).")
@@ -96,10 +92,9 @@ def collect():
                 cv2.circle(canvas, (int(tx), int(ty)), 20, (0, 255, 0) if recording else (0, 0, 255), -1)
                 draw_prompt(canvas, prompt, tx, ty)
 
-                if recording and len(result.face_landmarks) > 0 and len(result.facial_transformation_matrixes) > 0:
+                if recording and len(result.face_landmarks) > 0:
                     face = result.face_landmarks[0]
-                    faceMatrix = result.facial_transformation_matrixes[0]
-                    TEMP.append(feature(frame, face, faceMatrix))
+                    TEMP.append(feature(frame, face))
 
                 cv2.imshow(WINDOW_NAME, canvas)
                 cv2.waitKey(1)
@@ -129,6 +124,7 @@ def predict(model, feat):
 
 
 def live(model, alpha=EMA_ALPHA):
+    gaze_cnn.load()
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Could not open camera (index 0).")
@@ -162,10 +158,9 @@ def live(model, alpha=EMA_ALPHA):
         result = landmarker.detect_for_video(mp_image, ts_ms)
         canvas = np.zeros((CANVAS_H, CANVAS_W, 3), np.uint8)
 
-        if len(result.face_landmarks) > 0 and len(result.facial_transformation_matrixes) > 0:
+        if len(result.face_landmarks) > 0:
             face = result.face_landmarks[0]
-            faceMatrix = result.facial_transformation_matrixes[0]
-            feat = feature(frame, face, faceMatrix)
+            feat = feature(frame, face)
             raw_predict_coord = predict(model, feat)
             predict_coord = raw_predict_coord * alpha + predict_coord * (1 - alpha)
 
@@ -177,7 +172,6 @@ def live(model, alpha=EMA_ALPHA):
 
     cap.release()
     cv2.destroyAllWindows()
-
 
 def main():
     X, Y = collect()

@@ -94,6 +94,16 @@ def head_rotation(faceTransMatrix):
 def head_translation(faceTransMatrix):
     return faceTransMatrix[:3, 3]
 
+def face_box(face, w, h, margin = 0.25):
+    x = [lm.x * w for lm in face]
+    y = [lm.y * h for lm in face]
+    x0, x1 = min(x), max(x)
+    y0, y1 = min(y), max(y) 
+    mx, my = (x1 - x0) * margin, (y1 - y0) * margin
+    x0, y0 = max(0, int(x0 - mx)), max(0, int(y0 - my))
+    x1, y1 = min(w, int(x1 + mx)), min(h, int(y1 + my))
+    return x0, y0, x1, y1
+
 def main():
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
